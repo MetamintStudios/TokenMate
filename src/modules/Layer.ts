@@ -67,7 +67,7 @@ export class Layer{
         return normalizationFactor
     }
 
-    selectAsset ( ) : Asset | void {
+    selectAsset ( ) : Asset {
         const rand = Math.random();
         var chance = 0
 
@@ -78,9 +78,8 @@ export class Layer{
                 return this.assets[idx];
             }
         }
-
+        
         // Unable to simulate an event.
-        signale.error(`[TokenMate Layer.selectAsset] Unable to simulate event.`)
-        return;
+        throw new Error(`[TokenMate Layer.selectAsset] Unable to select an asset in this layer. Please check probabilities.`)
     }
 }

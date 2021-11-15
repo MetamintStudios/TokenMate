@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "shits": "npm run build && node build/src/PeaceOfShitDriver.js",
+    "build": "npx tsc"
   },
   "repository": {
     "type": "git",
@@ -18,7 +20,8 @@
   },
   "homepage": "https://github.com/NFTitties/TokenMate#readme",
   "dependencies": {
-    "jimp": "^0.16.1"
+    "jimp": "^0.16.1",
+    "replace-color": "^2.3.0"
   },
   "devDependencies": {
     "@types/jest": "^27.0.2",
