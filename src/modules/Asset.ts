@@ -3,7 +3,7 @@ import signale from 'signale';
 
 interface Attribute{
     trait_type: string,
-    value: any
+    value: string
 }
 
 interface AssetOptions{
