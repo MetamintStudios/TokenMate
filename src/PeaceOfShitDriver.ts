@@ -1,8 +1,10 @@
 //Remember, before reading in an image, check if its an empty asset to just skip.
 import { Asset, Layer } from './modules'
-import { NFTImage } from './modules'
+import { NFTImage, JSONOptions } from './modules'
 import jimp from 'jimp'
 import signale from 'signale'
+import fs from 'fs'
+import * as ss from 'simple-statistics'
 
 //prob doesn't matter we are just using it to store path and read essentailly.
 const ASSET_PATH = `/Users/mattmulhall/Desktop/ShitAssets`;
@@ -612,10 +614,13 @@ async function GeneratePeacesOfShit(){
     
     const frequencyMap: Map<string, boolean> = new Map<string, boolean>();
 
-    while ( nfts_generated < 250 ) {
+
+    const stats = Array<number>();
+    while ( nfts_generated < 1000 ) {
+
         signale.info(`[PeaceOfShitDriver] Generating NFT ${nfts_generated + 1}`)
 
-        const NFTToGen = new NFTImage(nfts_generated);
+        const NFTToGen = new NFTImage(nfts_generated, true);
 
         signale.info(`[PeaceOfShitDriver] NFTImage Initialized.`)
 
@@ -649,18 +654,55 @@ async function GeneratePeacesOfShit(){
 
         frequencyMap.set(hash, true);
 
-        var GeneratedNFT: jimp;
-        try {
-            GeneratedNFT = await NFTToGen.rasterize();
-            signale.info(`[PeaceOfShitDriver] Rasterized Image.`)
-            GeneratedNFT.write(`${OUTPUT_PATH}/${NFTToGen.position}.png`)
-            signale.info(`[PeaceOfShitDriver] Wrote image.`)
-            nfts_generated += 1
-        } catch ( e : any ) {
-            signale.error(e)
-        }
+        const GeneratedNFT: jimp = await NFTToGen.rasterize();
+        signale.info(`[PeaceOfShitDriver] Rasterized Image.`)
+        const output_im_path = `${OUTPUT_PATH}/${NFTToGen.position}.png`;
+        const output_json_path = `${OUTPUT_PATH}/${NFTToGen.position}.json`;
+        GeneratedNFT.write(output_im_path)
+        signale.info(`[PeaceOfShitDriver] Wrote image.`)
 
+        const json: JSONOptions = {
+            name: `A Peace Of Shit #${nfts_generated}`,
+            symbol: ``,
+            description: `Just a piece of shit.`,
+            seller_fee_basis_points: 300,
+            image: output_im_path,
+            external_url: `https://apeaceofshit.com`,
+            attributes: NFTToGen.getAttributes(),
+            collection: {
+                name: "A Peace Of Shit",
+                family: "A Peace Of Shit Studios"
+            },
+            properties: {
+                files: [{
+                    uri: output_im_path,
+                    type: 'image/png'
+                }],
+                category: 'image',
+                creators: [
+                    {
+                        address: `6x8cMZb8PhHXsKQYiXphuU7AT2ABx25VTvf3HJHrvG1E`,
+                        share: 100
+                    }
+                ]
+            }
+        }
+        stats.push(NFTToGen.rarity);
+
+        fs.writeFileSync(output_json_path, JSON.stringify(json));
+        nfts_generated += 1
     }
+
+    signale.info(`STATISTICS...\n\n\n`)
+    signale.info(`Min: ${ss.min(stats)}`)
+    signale.info(`Max: ${ss.max(stats)}`)
+    signale.info(`Standard Deviation: ${ss.standardDeviation(stats)}`)
+    signale.info(`25th Percentile: ${ss.quantile(stats, .75)}`)
+    signale.info(`Median Percentile: ${ss.quantile(stats, .5)}`)
+    signale.info(`75th Percentile: ${ss.quantile(stats, .25)}`)
+    signale.info(`85th Percentile: ${ss.quantile(stats, .15)}`)
+    signale.info(`95th Percentile: ${ss.quantile(stats, .05)}`)
+    signale.info(`99th Percentile: ${ss.quantile(stats, .01)}`)
 
 }
 

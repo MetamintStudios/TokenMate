@@ -1,7 +1,7 @@
 import jimp from 'jimp'
 import signale from 'signale';
 
-interface Attribute{
+export interface Attribute{
     trait_type: string,
     value: string
 }

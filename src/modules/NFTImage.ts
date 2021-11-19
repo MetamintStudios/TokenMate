@@ -1,7 +1,38 @@
 import jimp from 'jimp'
 import { Layer } from './Layer'
-import { Asset } from './Asset'
+import { Asset, Attribute } from './Asset'
 import signale from 'signale';
+import fs from 'fs';
+
+export interface MediaContent{
+    uri: string,
+    type: string,
+    cdn?: boolean
+}
+
+export interface Creator {
+    address: string,
+    share: number
+}
+
+export interface JSONOptions{
+    name: string,
+    symbol: string,
+    description: string,
+    seller_fee_basis_points: number,
+    image: string,
+    external_url: string,
+    attributes?: Attribute[],
+    collection: {
+        name: string,
+        family: string
+    },
+    properties: {
+        files: MediaContent[],
+        category: string,
+        creators: Creator[]
+    }
+}
 
 export class NFTImage{
     // NFT Image base layer.
@@ -10,11 +41,19 @@ export class NFTImage{
     layers: Array<Asset>;
     // Position in the overall NFT generation
     position: number;
+    // Unique hash for this NFT
+    hash_code: string;
+    // Cumulative probability of this NFT's layers. 
+    rarity: number;
+    // Do we want to include rarity as an attribute
+    include_rarity_as_attribute?: boolean;
 
 
-    constructor( position: number ){
+    constructor( position: number, include_rarity_as_attribute?: boolean ){
         this.position = position;
         this.layers = Array<Asset>();
+        this.include_rarity_as_attribute = include_rarity_as_attribute;
+        this.rarity = 1;
     }
 
     compatible ( toApply: Asset ) : boolean {
@@ -30,10 +69,15 @@ export class NFTImage{
 
     // Returns a hash of this NFTImage to see if its been generated before.
     hash ( ) : string {
-        var hash: string = '';
+        // Only need to calculate once.
+        if ( this.hash_code )
+            return this.hash_code;
+
+        this.hash_code = '';
         for ( var i = 0; i < this.layers.length; ++i )
-            hash += this.layers[i].name!;
-        return hash
+            this.hash_code += this.layers[i].name!;
+
+        return this.hash_code;
     }
 
     applyLayer( asset: Asset /*z_index?: number*/ ) {
@@ -41,10 +85,30 @@ export class NFTImage{
         // Will add support for z_indexing later.
         this.layers.push(asset);
     }
-    
-    json( ) : Object {
-        
-        return {};
+
+    getAttributes( ) : Attribute[] {
+        // Write json meta data into json file.
+        const attributes = Array<Attribute>();
+
+        this.layers.forEach( ( asset ) => {
+            this.rarity *= asset.probability;
+        })
+        signale.info(`[TokenMate NFTImage.json] NFT Image: ${this.hash()} has rarity: ${this.rarity * 100}%`)
+
+        this.layers.forEach( ( asset: Asset ) => {
+            if ( asset.has_attribute ){
+                attributes.push(asset.attribute!)
+            }
+        })
+
+        if ( this.include_rarity_as_attribute! ) {
+            attributes.push({
+                value: `${this.rarity * 100}%`,
+                trait_type: `Rarity`
+            })
+        }
+
+        return attributes;
     }
     
     async rasterize() : Promise<jimp> {
