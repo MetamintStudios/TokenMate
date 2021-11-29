@@ -100,10 +100,27 @@ export class NFTImage{
                 attributes.push(asset.attribute!)
             }
         })
-
+        signale.info(`INCLUDING RARITY`)
         if ( this.include_rarity_as_attribute! ) {
+
+            var rarity_string: string;
+            const p = this.rarity * 100;
+
+            if ( p > .5 ) {
+                rarity_string = `Common`
+            } else if ( p > .20) {
+                rarity_string = `Rare`
+            } else if ( p > .10 ) {
+                rarity_string = `Super Rare`
+            } else if ( p > .05 ) { 
+                rarity_string = `Ultra`
+            } else if ( p < .05 ){
+                rarity_string = `Legendary`
+            }
+
+
             attributes.push({
-                value: `${this.rarity * 100}%`,
+                value: rarity_string!,
                 trait_type: `Rarity`
             })
         }

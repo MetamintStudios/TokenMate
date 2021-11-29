@@ -25,7 +25,7 @@ export class Layer{
         for ( var i = 0; i < this.assets.length; ++i ) {
             this.overallProbability += this.assets[i].probability;
         }
-
+        
         if ( this.overallProbability < 1 ){
             const factor = this.normalizeProbability();
             if ( factor )

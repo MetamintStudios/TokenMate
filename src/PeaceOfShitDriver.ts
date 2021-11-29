@@ -616,7 +616,7 @@ async function GeneratePeacesOfShit(){
 
 
     const stats = Array<number>();
-    while ( nfts_generated < 1000 ) {
+    while ( nfts_generated < 20 ) {
 
         signale.info(`[PeaceOfShitDriver] Generating NFT ${nfts_generated + 1}`)
 
