@@ -4,15 +4,49 @@ const test_im_path = '/Users/mattmulhall/Desktop/SimplifiedHype/StardustProxies/
 const test_im_path_bad_path = '/Users/mattmulhall/Desktop/SimplifiedHype/StardustProxies/public/images/Stardust_INVALID_ProxiesTransparent.png'
 const test_im_path_jpg = '/Users/mattmulhall/Desktop/Simplified Clothing/Products/Fire Shorts/Front.jpg'
 
-test('Test construction', () => {
+test('Test construction.', () => {
     const birthday_hat = new Asset(test_im_path, .25);
 
     expect(birthday_hat).toBeTruthy();
 })
 
+test('Test construction with attribute.', () => {
+
+    const birthday_hat = new Asset(test_im_path, .25, {
+        attribute: {
+            trait_type: "Birthday Hat",
+            value: "Polka Dots"
+        },
+        name: "PolkaBirthdayHat"
+    });
+
+    expect(birthday_hat).toBeTruthy();
+    expect(birthday_hat.has_attribute).toBeTruthy();
+    expect(birthday_hat.attribute?.trait_type).toEqual("Birthday Hat")
+    expect(birthday_hat.attribute?.value).toEqual("Polka Dots")
+    expect(birthday_hat.name).toEqual("PolkaBirthdayHat")
+})
+
+test('Test construction with automatic name.', () => {
+
+    const birthday_hat = new Asset(test_im_path, .25, {
+        attribute: {
+            trait_type: "Birthday Hat",
+            value: "Polka Dots"
+        }
+    });
+
+    expect(birthday_hat).toBeTruthy();
+    expect(birthday_hat.has_attribute).toBeTruthy();
+    expect(birthday_hat.name).toEqual("StardustProxiesTransparent")
+})
+
 test('Test that offset x and offset y optional arguments behave correctly.', async () => {
     const birthday_hat = new Asset(test_im_path, .25);
-    const birthday_hat2 = new Asset(test_im_path, .25, 15, 5);
+    const birthday_hat2 = new Asset(test_im_path, .25, {
+        offset_x: 15,
+        offset_y: 5
+    });
 
     expect(birthday_hat.offset_x).toBeFalsy();
     expect(birthday_hat.offset_y).toBeFalsy();
