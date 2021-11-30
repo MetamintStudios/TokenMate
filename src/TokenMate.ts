@@ -17,11 +17,17 @@ program.command('setup')
                     return path.join(val, directory)
                 })
                 sub_directories = sub_directories.filter((value) => {
-                    return fs.lstatSync(value).isDirectory()
+                    const is_dir = fs.lstatSync(value).isDirectory()
+                    if ( is_dir ){
+                        const split = value.split(path.sep)
+                        const layerName = split[split.length - 1]
+                        signale.info(`[TokenMate Main] Found a layer: ${layerName}`)
+                        return value
+                    }
                 })
                 return sub_directories
             }catch (e){
-                throw new Error(`[TokenMate] Error reading directory ${val}: ${e}.`)
+                throw new Error(`[TokenMate Main] Error reading directory ${val}: ${e}.`)
             }
             
         }
@@ -40,9 +46,10 @@ program.command('setup')
 
         //@ts-ignore next-line
         const { out } = options
+
         const Layers = new Array<Layer>();
         sub_dirs.forEach( ( value ) => {
-            const split = value.split('/')
+            const split = value.split(path.sep)
             const layerName = split[split.length - 1]
             var assetList = fs.readdirSync(`${value}`)
             assetList = assetList.filter( ( file_name ) => {
@@ -50,6 +57,7 @@ program.command('setup')
             })
 
             const assets: Array<Asset> = assetList.map( ( filename ) => {
+                signale.success(`[TokenMate Main] Initializing asset ${filename} for layer ${layerName}`)
                 return new Asset(
                     path.join(value, filename),
                     0.0,
@@ -67,7 +75,14 @@ program.command('setup')
                 name: layerName
             })
         })
-        fs.writeFileSync(out, JSON.stringify(Layers))
+
+        if ( !out ) {
+            fs.writeFileSync(path.join(__dirname, '../generated_assets.json'), JSON.stringify(Layers))
+        } else {
+            fs.writeFileSync(out, JSON.stringify(Layers))
+        }
+
+        signale.warn(`[TokenMate Main] WARNING: this command only enumerates data from your asset folder. You must assign probabilities to each layer option, and verify the metadata. You must also verify the z-index metadata option, so that the layer is placed in the proper z-index.`)
     }
 )
 
@@ -76,21 +91,20 @@ program.command('generate')
         `<input>`,
         `Path to JSON file containing the json file created by the setup command in this script.`
     )
-    .option(
+    .requiredOption(
         `-n, --number <number>`,
         `Number of nfts to generate.`
     )
-    .option(
+    .requiredOption(
         `-o, --output <string>`,
         `Path to directory where we will write NFT images, and meta data.`
     )
-    .option(
+    .requiredOption(
         `-c, --creator <string>`,
         `Creator solana key that will receive funds from NFT Minting.`
     )
     .action( 
     async ( input: string, options) => {
-        console.log(options)
         const { number, output, creator } = options;
         const json = JSON.parse(fs.readFileSync(input, 'utf-8'));
 
