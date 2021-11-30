@@ -89,7 +89,7 @@ Generate is the part of the process where TokenMate does the heavy lifting, and 
 # Example
 If you have read the above documentation, follow along with this example for proper usage.
 
-`npx ts-node src/TokenMate.ts setup /path/to/Assets`
-`npx ts-node src/TokenMate.ts generate ./tmconfig.json -n NUMBER_TO_GENERATE -o ./out/ --include_rarity`
+* `npx ts-node src/TokenMate.ts setup /path/to/Assets`
+* `npx ts-node src/TokenMate.ts generate ./tmconfig.json -n NUMBER_TO_GENERATE -o ./out/ --include_rarity`
 
 Enjoy your unique NFTs!

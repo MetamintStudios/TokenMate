@@ -20,13 +20,13 @@ program.command('setup')
                     if ( is_dir ){
                         const split = value.split(path.sep)
                         const layerName = split[split.length - 1]
-                        signale.info(`[TokenMate Main] Found a layer: ${layerName}`)
+                        signale.info(`[TokenMate Setup] Found a layer: ${layerName}`)
                         return value
                     }
                 })
                 return sub_directories
             }catch (e){
-                throw new Error(`[TokenMate Main] Error reading directory ${val}: ${e}.`)
+                throw new Error(`[TokenMate Setup] Error reading directory ${val}: ${e}.`)
             } 
         }
     )
@@ -55,7 +55,7 @@ program.command('setup')
             })
 
             const assets: Array<Asset> = assetList.map( ( filename ) => {
-                signale.success(`[TokenMate Main] Initializing asset ${filename} for layer ${layerName}`)
+                signale.success(`[TokenMate Setup] Initializing asset ${filename} for layer ${layerName}`)
                 return new Asset(
                     path.join(value, filename),
                     1,
@@ -107,7 +107,7 @@ program.command('setup')
             fs.writeFileSync(out, JSON.stringify(config))
         }
 
-        signale.warn(`[TokenMate Main] WARNING: this command only enumerates data from your asset folder. You must assign probabilities to each layer option, and verify the metadata. You must also verify the z-index metadata option, so that the layer is placed in the proper z-index.`)
+        signale.warn(`[TokenMate Setup] WARNING: this command only enumerates data from your asset folder. You must assign probabilities to each layer option, and verify the metadata. You must also verify the z-index metadata option, so that the layer is placed in the proper z-index.`)
     }
 )
 
