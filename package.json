@@ -1,11 +1,10 @@
 {
   "name": "TokenMate",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "shits": "npm run build && node build/src/PeaceOfShitDriver.js",
     "build": "npx tsc",
     "start" : "npx ts-node src/TokenMate.ts"
   },

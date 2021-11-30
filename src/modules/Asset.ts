@@ -43,7 +43,7 @@ export class Asset{
     // Flag that when set to true, treats this image as a transparent layer, and doesn't apply it.
     empty_layer?: boolean;
     // List of paths or layer names that are incompatible with this layer.
-    incompatible_with?: Array<string>;
+    incompatible_with: Array<string>;
 
     constructor ( path: string, probability: number, options?: AssetOptions ){
         this.path = path;
@@ -53,7 +53,7 @@ export class Asset{
         this.offset_y = options?.offset_y;
 
         this.empty_layer = options?.empty_layer;
-        this.incompatible_with = options?.incompatible_with;
+        this.incompatible_with = options?.incompatible_with || [];
         
         this.attribute = options?.attribute;
         this.has_attribute = this.attribute ? true : false;
@@ -66,13 +66,10 @@ export class Asset{
     }
 
     compatible ( other: Asset ) : boolean {
-        if ( this.incompatible_with ){
-            signale.info(`[TokenMate Asset.compatible] ${this.name} has an incompatibility list, checking if it includes ${other.name}.`);
-            return !this.incompatible_with.includes(other.name);
+        if ( this.incompatible_with.length > 0 ){
+            return !this.incompatible_with.includes(other.path);
         } else {
-            signale.info(`[TokenMate Asset.compatible] ${this.name} does not have an incompatibility list, returning true for all options.`);
             return true;
-
         }
     }
 

@@ -45,14 +45,11 @@ export class NFTImage{
     hash_code: string;
     // Cumulative probability of this NFT's layers. 
     rarity: number;
-    // Do we want to include rarity as an attribute
-    include_rarity_as_attribute?: boolean;
 
 
-    constructor( position: number, include_rarity_as_attribute?: boolean ){
+    constructor( position: number ){
         this.position = position;
         this.layers = Array<Asset>();
-        this.include_rarity_as_attribute = include_rarity_as_attribute;
         this.rarity = 1;
     }
 
@@ -93,37 +90,12 @@ export class NFTImage{
         this.layers.forEach( ( asset ) => {
             this.rarity *= asset.probability;
         })
-        signale.info(`[TokenMate NFTImage.json] NFT Image: ${this.hash()} has rarity: ${this.rarity * 100}%`)
 
         this.layers.forEach( ( asset: Asset ) => {
             if ( asset.has_attribute ){
                 attributes.push(asset.attribute!)
             }
         })
-        signale.info(`INCLUDING RARITY`)
-        if ( this.include_rarity_as_attribute! ) {
-
-            var rarity_string: string;
-            const p = this.rarity * 100;
-
-            if ( p > .5 ) {
-                rarity_string = `Common`
-            } else if ( p > .20) {
-                rarity_string = `Rare`
-            } else if ( p > .10 ) {
-                rarity_string = `Super Rare`
-            } else if ( p > .05 ) { 
-                rarity_string = `Ultra`
-            } else if ( p < .05 ){
-                rarity_string = `Legendary`
-            }
-
-
-            attributes.push({
-                value: rarity_string!,
-                trait_type: `Rarity`
-            })
-        }
 
         return attributes;
     }
@@ -135,7 +107,7 @@ export class NFTImage{
             const asset = this.layers[idx];
 
             if ( asset.empty_layer ){
-                signale.info(`[TokenMate NFTImage.rasterize] Selected empty layer, nothing to apply.`)
+                signale.debug(`[TokenMate NFTImage.rasterize] Selected empty layer, nothing to apply.`)
                 continue;
             }
             

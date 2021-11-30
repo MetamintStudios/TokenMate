@@ -1,10 +1,9 @@
 import { program, Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
-import { Asset, NFTImage, JSONOptions, Layer } from './modules'
+import { getLogger, Asset, NFTImage, JSONOptions, Layer, DefaultQuantiles, Quantile, calculateAttribute } from './modules'
 import jimp from 'jimp'
 import signale from 'signale'
-import * as ss from 'simple-statistics'
 
 program.command('setup')
     .argument(
@@ -28,8 +27,7 @@ program.command('setup')
                 return sub_directories
             }catch (e){
                 throw new Error(`[TokenMate Main] Error reading directory ${val}: ${e}.`)
-            }
-            
+            } 
         }
     )
     .option(
@@ -45,7 +43,7 @@ program.command('setup')
         }
 
         //@ts-ignore next-line
-        const { out } = options
+        const { out, verbose } = options
 
         const Layers = new Array<Layer>();
         sub_dirs.forEach( ( value ) => {
@@ -60,12 +58,17 @@ program.command('setup')
                 signale.success(`[TokenMate Main] Initializing asset ${filename} for layer ${layerName}`)
                 return new Asset(
                     path.join(value, filename),
-                    0.0,
+                    1,
                     {
                         attribute: {
                             value: filename.split('.')[0],
-                            trait_type: layerName
-                        }
+                            trait_type: layerName,
+                        },
+                        incompatible_with: [],
+                        offset_x: 0,
+                        offset_y: 0,
+                        empty_layer: false,
+                        name:  filename.split('.')[0]
                     }
                 )
             })
@@ -76,10 +79,32 @@ program.command('setup')
             })
         })
 
+        const config = {
+            config: {
+                name: 'NFT Name, the NFTs number will be appended at the end of this name.',
+                description: 'Describe your NFT Project!',
+                seller_fee_basis_points: 0,
+                external_url: 'url of your twitter or website',
+                collection: {
+                    name: 'NFT Collection Name',
+                    family: 'NFT Collection Family Name'
+                },
+                properties: {
+                    creators: [
+                        {
+                            address: 'your solana address',
+                            share: 100
+                        }
+                    ]
+                }
+            },
+            layers: Layers
+        }
+
         if ( !out ) {
-            fs.writeFileSync(path.join(__dirname, '../generated_assets.json'), JSON.stringify(Layers))
+            fs.writeFileSync(path.join(__dirname, '../tmconfig.json'), JSON.stringify(config))
         } else {
-            fs.writeFileSync(out, JSON.stringify(Layers))
+            fs.writeFileSync(out, JSON.stringify(config))
         }
 
         signale.warn(`[TokenMate Main] WARNING: this command only enumerates data from your asset folder. You must assign probabilities to each layer option, and verify the metadata. You must also verify the z-index metadata option, so that the layer is placed in the proper z-index.`)
@@ -99,46 +124,83 @@ program.command('generate')
         `-o, --output <string>`,
         `Path to directory where we will write NFT images, and meta data.`
     )
-    .requiredOption(
-        `-c, --creator <string>`,
-        `Creator solana key that will receive funds from NFT Minting.`
+    .option(
+        `--include_rarity`,
+        `Includes rarity as an attribute on the NFT. This flag will make the program run longer, as it will build a distribution after generation, and retro-actively apply a configurable rarity descriptor (i.e. Common) as an attribute.`
+    )
+    .option(
+        '--verbose',
+        'Includes debug logs in output to stdout.'
     )
     .action( 
     async ( input: string, options) => {
-        const { number, output, creator } = options;
-        const json = JSON.parse(fs.readFileSync(input, 'utf-8'));
+        const { number, output, creator, include_rarity, verbose } = options;
+        const progOptions = JSON.parse(fs.readFileSync(input, 'utf-8'));
+        const output_path = path.resolve(output);
+        const debug = (msg: string) => {
+            if ( verbose )
+                signale.debug(msg)
+        }
 
         const Layers = new Array<Layer>();
 
-        for ( var i = 0; i < json.length; ++i ) {
+        /* Initialize */
+
+        const config = progOptions.config;
+        const layers: Array<Layer> = progOptions.layers;
+        var num_layers = layers.length;
+        var num_assets = 0;
+        layers.forEach( ( layer ) => {
             const assets = new Array<Asset>();
 
-            for ( var j = 0; j < json[i].assets.length; ++j ){
-                assets.push(new Asset(
-                    json[i].assets[j].path, 
-                    json[i].assets[j].probability,
+            layer.assets.forEach( ( asset ) => {
+                assets.push( new Asset ( 
+                    asset.path,
+                    asset.probability,
                     {
-                        attribute: json[i].assets[j].attribute
+                        attribute: asset.attribute,
+                        incompatible_with: asset.incompatible_with,
+                        offset_x: asset.offset_x,
+                        offset_y: asset.offset_y,
+                        empty_layer: asset.empty_layer,
+                        name: asset.name
                     }
-                    ))
-            }
-            
-            Layers.push(new Layer(
-                assets
-            ))
+                ));
+                num_assets++;
+            })
+            Layers.push(new Layer(assets));
+        })
+        
+        // Check that we can even generate the amount of NFTs requested.
+        const max_nfts = Math.pow(num_layers, num_assets / num_layers);
+        if ( max_nfts < number ) {
+            throw new Error(`[TokenMate Generate] ${number} NFTs were requested, the supplied assets can only support a maximum of ${max_nfts}.`)
         }
-        var nfts_generated = 0;
 
-        const frequencyMap: Map<string, boolean> = new Map<string, boolean>();
 
+        /* Generate */
+        interface JsonFile{
+            path: string,
+            data: JSONOptions,
+            rarity: number
+        }
+
+        const metadata = Array<JsonFile>();
         const stats = Array<number>();
+        const lookup = new Set<string>();
+
+        if ( !fs.existsSync(output) ) {
+            fs.mkdirSync(output);
+        }
+
+        var nfts_generated = 0;
         while ( nfts_generated < number ) {
 
-            signale.info(`[PeaceOfShitDriver] Generating NFT ${nfts_generated + 1}`)
+            signale.info(`[TokenMate Generate] Generating NFT #${nfts_generated + 1}.`)
 
-            const NFTToGen = new NFTImage(nfts_generated, true);
+            const NFTToGen = new NFTImage(nfts_generated);
 
-            signale.info(`[PeaceOfShitDriver] NFTImage Initialized.`)
+            debug(`[TokenMate Generate] NFTImage Initialized.`)
 
             for ( var idx = 0; idx < Layers.length; ++ idx ){
                 
@@ -147,48 +209,50 @@ program.command('generate')
                 // If the asset is not compatible get until they are.
                 while ( !NFTToGen.compatible(chosenAsset ) ) {
                     chosenAsset = Layers[idx].selectAsset();
-                    signale.warn(`[PeaceOfShitDriver] Selected asset invalid ${chosenAsset.name}, picking another.`)
+                    signale.warn(`[TokenMate Generate] Selected asset invalid ${chosenAsset.name}, picking another.`)
                 }
-                
-                signale.info(`[PeaceOfShitDriver] Selected Asset ${chosenAsset.name}.`)
+                debug(`[TokenMate Generate] Selected Asset ${chosenAsset.name}.`)
                 // Apply layer
                 // Should validate configuration to make sure that there
                 // isn't a layer that is incompatible with another.
                 NFTToGen.applyLayer(chosenAsset);
 
-                signale.info(`[PeaceOfShitDriver] Applied layer to image.`)
+                debug(`[TokenMate Generate] Applied layer to image.`)
             }
 
             const hash = NFTToGen.hash();
 
-            const exists = frequencyMap.get(hash)
+            const exists = lookup.has(hash);
             
             if ( exists ){
-                signale.info(`[PeaceOfShitDriver] Generated a duplicate NFT hash, skipping.`)
+                debug(`[TokenMate Generate] Generated a duplicate NFT hash, skipping.`)
                 continue;
             }
 
-            frequencyMap.set(hash, true);
+            //NFT Accepted
+            signale.success(`[TokenMate Generate] NFT #${nfts_generated + 1} Generated.`)
+
+            lookup.add(hash);
 
             const GeneratedNFT: jimp = await NFTToGen.rasterize();
-            signale.info(`[PeaceOfShitDriver] Rasterized Image.`)
-            const output_im_path = `${output}/${NFTToGen.position}.png`;
-            console.log(output_im_path)
-            const output_json_path = `${output}/${NFTToGen.position}.json`;
+            debug(`[TokenMate Generate] Rasterized Image.`)
+
+            const output_im_path = path.join(output_path, `${NFTToGen.position}.png`);
+            const output_json_path = path.join(output_path, `${NFTToGen.position}.json`);
             GeneratedNFT.write(output_im_path)
-            signale.info(`[PeaceOfShitDriver] Wrote image.`)
+            debug(`[TokenMate Generate] Wrote image.`)
 
             const json: JSONOptions = {
-                name: `Naughty Narwhals #${nfts_generated}`,
-                symbol: ``,
-                description: `555 Naughty Narwhals that are the horniest in the Solana Sea are ready to swim into your wallets and be the next blue chip NFT.`,
-                seller_fee_basis_points: 500,
+                name: `${config.name} #${nfts_generated}`,
+                symbol: config.symbol,
+                description: config.description,
+                seller_fee_basis_points: config.seller_fee_basis_points,
                 image: output_im_path,
-                external_url: `https://twitter.com/NarwhalsNaughty`,
+                external_url: config.external_url,
                 attributes: NFTToGen.getAttributes(),
                 collection: {
-                    name: "The Naughty Narwhals",
-                    family: "Naughty Narwhals Studios"
+                    name: config.collection.name,
+                    family: config.collection.family
                 },
                 properties: {
                     files: [{
@@ -196,30 +260,39 @@ program.command('generate')
                         type: 'image/png'
                     }],
                     category: 'image',
-                    creators: [
-                        {
-                            address: creator,
-                            share: 100
-                        }
-                    ]
+                    creators: config.properties.creators
                 }
             }
-            stats.push(NFTToGen.rarity);
+            /* Defer metadata write so we can add rarity if its desired. */
+            metadata.push({
+                path: output_json_path,
+                data: json,
+                rarity: NFTToGen.rarity
+            })
 
-            fs.writeFileSync(output_json_path, JSON.stringify(json));
+            stats.push(NFTToGen.rarity);
             nfts_generated += 1        
         }
 
-        signale.info(`STATISTICS...\n\n\n`)
-        signale.info(`Min: ${ss.min(stats)}`)
-        signale.info(`Max: ${ss.max(stats)}`)
-        signale.info(`Standard Deviation: ${ss.standardDeviation(stats)}`)
-        signale.info(`25th Percentile: ${ss.quantile(stats, .75)}`)
-        signale.info(`Median Percentile: ${ss.quantile(stats, .5)}`)
-        signale.info(`75th Percentile: ${ss.quantile(stats, .25)}`)
-        signale.info(`85th Percentile: ${ss.quantile(stats, .15)}`)
-        signale.info(`95th Percentile: ${ss.quantile(stats, .05)}`)
-        signale.info(`99th Percentile: ${ss.quantile(stats, .01)}`)
+        const writeJson = ()=> {
+            metadata.forEach( ( file ) => {
+                fs.writeFileSync(file.path, JSON.stringify(file.data));
+            })
+        }
+
+        if ( include_rarity ) {
+            metadata.forEach( ( value ) => {
+                value.data.attributes!.push({
+                    trait_type: `Rarity`,
+                    value: calculateAttribute(stats, value.rarity, DefaultQuantiles)
+                })
+            })
+        }
+
+        writeJson();
+        signale.success(`[TokenMate Generate] Generated ${nfts_generated} NFTs for collection ${config.collection.name}.`);
     })
 
+program.name('TokenMate')
+program.version('v0.0.1')
 program.parse(process.argv);
