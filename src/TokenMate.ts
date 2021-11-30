@@ -1,7 +1,7 @@
 import { program, Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
-import { getLogger, Asset, NFTImage, JSONOptions, Layer, DefaultQuantiles, Quantile, calculateAttribute } from './modules'
+import { Asset, NFTImage, JSONOptions, Layer, DefaultQuantiles, Quantile, calculateAttribute } from './modules'
 import jimp from 'jimp'
 import signale from 'signale'
 
