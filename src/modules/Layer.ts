@@ -4,10 +4,12 @@ import signale from 'signale'
 export class Layer{
 
     assets: Array<Asset>;
+    z_index: number;
     overallProbability : number = 0;
 
-    constructor( assets: Array<Asset> ){
-        this.assets = assets
+    constructor( assets: Array<Asset>, z_index: number ){
+        this.assets = assets;
+        this.z_index = z_index;
 
         // Accepted probability formats:
         //

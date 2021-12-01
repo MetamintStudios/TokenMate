@@ -39,14 +39,15 @@ program.command('setup')
 
         interface Layer{
             assets: Asset[],
-            name: string
+            name: string,
+            z_index: number
         }
 
         //@ts-ignore next-line
         const { out, verbose } = options
 
         const Layers = new Array<Layer>();
-        sub_dirs.forEach( ( value ) => {
+        sub_dirs.forEach( ( value, index ) => {
             const split = value.split(path.sep)
             const layerName = split[split.length - 1]
             var assetList = fs.readdirSync(`${value}`)
@@ -73,10 +74,7 @@ program.command('setup')
                 )
             })
             
-            Layers.push({
-                assets: assets,
-                name: layerName
-            })
+            Layers.push({ assets: assets, name: layerName, z_index: index });
         })
 
         const config = {
@@ -168,7 +166,11 @@ program.command('generate')
                 ));
                 num_assets++;
             })
-            Layers.push(new Layer(assets));
+            Layers.push(new Layer(assets, layer.z_index));
+        })
+
+        Layers.sort( ( a: Layer, b: Layer ) => {
+            return a.z_index < b.z_index ? -1 : 1;
         })
         
         // Check that we can even generate the amount of NFTs requested.
