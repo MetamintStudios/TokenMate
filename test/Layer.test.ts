@@ -6,7 +6,7 @@ test('Test construction, and probability normalization.', () => {
     const head = new Layer([
         new Asset('/path/to/image', .01),
         new Asset('/path/to/image', .2)
-    ])
+    ], 2)
 
     const expectedNormalizationFactor = ( 1 / .01 );
     expect(head.overallProbability).toBeCloseTo( ( expectedNormalizationFactor * .01 ) + ( expectedNormalizationFactor * .2 ));
@@ -14,7 +14,7 @@ test('Test construction, and probability normalization.', () => {
     const background = new Layer([
         new Asset('/path/to/image', 1),
         new Asset('/path/to/image', 20)
-    ])
+    ], 0)
 
     expect(background.overallProbability).toEqual( 1 + 20 );
 
@@ -22,7 +22,7 @@ test('Test construction, and probability normalization.', () => {
         new Asset('/path/to/image', .01),
         new Asset('/path/to/image', .9),
         new Asset('/path/to/image', .09)
-    ])
+    ], 1)
 
     expect(necklace.overallProbability).toEqual( 1 );
 })
@@ -31,7 +31,7 @@ test('Test event simulation with decimals.', () => {
     const head = new Layer([
         new Asset('/path/to/image1', .01),
         new Asset('/path/to/image2', .99)
-    ])
+    ], 1)
     const frequencyMap: Map<string, number> = new Map<string, number>();
     
     // Since this is a unit test, lets just set it manually to not
@@ -57,7 +57,7 @@ test('Test event simulation with relative event occurences.', () => {
     const head = new Layer([
         new Asset('/path/to/image1', 1),
         new Asset('/path/to/image2', 2)
-    ])
+    ], 1)
     const frequencyMap: Map<string, number> = new Map<string, number>();
     
     // Since this is a unit test, lets just set it manually to not

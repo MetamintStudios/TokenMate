@@ -49,7 +49,12 @@ This config file may not be complete, and may require you to make some changes t
 * **incompatible_with**: Optional, this option exists to allow you to describe Assets across other layers, that cannot be selected with this asset. I.E. Blue background shouldn't have a blue skin type, your blue background asset entry would have the following ```incompatible_with = ['path/to/blue/skin']```
 * **name**: Optional, default is the file name without extension. Modify the value after running setup if you want to change the names in the metadata output.
 
-### Setup options:
+### Layer Options
+Included in the configuration is a single, ***incredibly*** important option, z-index.
+
+* **z_index**: Required, default is the order in which your file system enumerates the options through the node fs library. Start at 0 with the background, and then continue to add layers on top by incrementing that layers z_index by 1. If your NFTs do not come out right, this is most likely the option that is causing it.
+
+### Setup Example:
 
 ``` npx ts-node src/TokenMate.ts setup ```
 * ```directory```: Directory where the asset files are currently situated. There should be sub directories, where unique classes of assets are stored.
@@ -61,7 +66,7 @@ This config file may not be complete, and may require you to make some changes t
 
 Generate is the part of the process where TokenMate does the heavy lifting, and begins generating NFTs & metadata. At this point, the work for you should be done, and you should only have to call generate with a few parameters.
 
-### Generate options:
+### Generate Example:
 ```npx ts-node src/TokenMate.ts generate```
 * ```input```: Path to JSON file containing the json file created by the setup command in this script.
 * ```-n, --number <number>```: Number of nfts to generate.
